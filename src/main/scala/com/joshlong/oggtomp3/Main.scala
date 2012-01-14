@@ -21,9 +21,32 @@ import java.lang.ProcessBuilder
  */
 object Main extends App {
 
-  // users are adivsed to specify these on using this
-  val oggMusic = "/Volumes/music"     // directory on which my collection of .ogg files are stored
-  val ffmpegBinary = "/usr/local/bin/ffmpeg"  // the fill path to the ffmpeg utility on your system. This is where homebrew puts it on OSX
+  // users are advised to specify these on using this
+  val oggMusic = {
+    val home = System.getenv("MUSIC_HOME") match {
+      case null => "/Volumes/music"
+      case dir: String => dir
+    }
+    assert(home != null, "you must specify which directory to scan for .ogg files. Consulted $MUSIC_HOME, and checked '/Volumes/music'")
+    home
+  }
+
+  // directory on which my collection of .ogg files are stored
+  val ffmpegBinary = {
+    val ffmpegs = "/usr/local/bin/ffmpeg,/usr/bin/ffmpeg".split(",")
+    val command = System.getenv("FFMPEG_CMD") match {
+      case null => {
+        val ffmpegSelection = ffmpegs.map(s => new File(s)).find(f => f.exists()).get
+        if (ffmpegSelection != null) ffmpegSelection.getAbsolutePath else null
+      }
+      case cmd: String => cmd
+    }
+    assert(command != null, "we could not find an 'ffmpeg' command line. Either specify $FFMPEG_CMD, or ensure that /usr/local/bin/ffmpeg or /usr/bin/ffmpeg available.")
+    command
+  }
+
+  println("ffmpeg binary chosen: " + ffmpegBinary)
+  println("music home directory: " + oggMusic)
 
   def fileBaseName(file: File) =
     file.getName.substring(0, file.getName.lastIndexOf("."))
@@ -82,18 +105,20 @@ object Main extends App {
     val mirrorDir = new File(mirror, dir.getAbsolutePath.substring(musicFolder.getAbsolutePath.length()))
     assert(mirrorDir.exists() || mirrorDir.mkdirs(), "the directory " + mirrorDir.getAbsolutePath + " doesn't exist and couldn't be created")
     dir.listFiles.filter(f => f.isFile && isOgg(f.getName)).foreach(ogg => {
-      val mirrorFile = new File(mirrorDir, fileBaseName(ogg) + ".mp3")
-      assert(!stagingOgg.exists() || stagingOgg.delete())
-      assert(!stagingMp3.exists() || stagingMp3.delete())
-      copy(ogg, stagingOgg)
-      val pb = new ProcessBuilder(ffmpegBinary, "-ab", "192k", "-i", stagingOgg.getAbsolutePath, stagingMp3.getAbsolutePath)
-      pb.redirectErrorStream()
-      val process = pb.start()
-      assert(0 == process.waitFor(), "the process should have completed with exit code '0'")
-      println(IOUtils.toString(process.getInputStream))
-      println(IOUtils.toString(process.getErrorStream))
-      copy(stagingMp3, mirrorFile)
-      assert(stagingMp3.exists(), "the file " + stagingMp3.getAbsolutePath + " should exist")
+      val transcodedMp3File = new File(mirrorDir, fileBaseName(ogg) + ".mp3")
+      if (null == transcodedMp3File) {
+        assert(!stagingOgg.exists() || stagingOgg.delete())
+        assert(!stagingMp3.exists() || stagingMp3.delete())
+        copy(ogg, stagingOgg)
+        val pb = new ProcessBuilder(ffmpegBinary, "-ab", "192k", "-i", stagingOgg.getAbsolutePath, stagingMp3.getAbsolutePath)
+        pb.redirectErrorStream()
+        val process = pb.start()
+        assert(0 == process.waitFor(), "the process should have completed with exit code '0'")
+        println(IOUtils.toString(process.getInputStream))
+        println(IOUtils.toString(process.getErrorStream))
+        copy(stagingMp3, transcodedMp3File)
+        assert(stagingMp3.exists(), "the file " + stagingMp3.getAbsolutePath + " should exist")
+      }
     })
   })
 }
