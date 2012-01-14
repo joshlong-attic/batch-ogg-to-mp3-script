@@ -8,7 +8,13 @@
     <version>1.0-M1</version>
     <name>OGG to MP3</name>
     <inceptionYear>2012</inceptionYear>
-
+   <repositories>
+		<repository>
+	      <id>scala-tools.org</id>
+            <name>Scala-tools Maven2 Repository</name>
+            <url>http://scala-tools.org/repo-releases</url>
+		</repository>
+	</repositories>
     <pluginRepositories>
         <pluginRepository>
             <id>scala-tools.org</id>
