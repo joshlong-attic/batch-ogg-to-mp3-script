@@ -45,9 +45,6 @@ object Main extends App {
     command
   }
 
-  println("ffmpeg binary chosen: " + ffmpegBinary)
-  println("music home directory: " + oggMusic)
-
   def fileBaseName(file: File) =
     file.getName.substring(0, file.getName.lastIndexOf("."))
 
@@ -92,6 +89,9 @@ object Main extends App {
   def isOgg(f: String) =
     f.toLowerCase.substring(1 + f.toLowerCase.lastIndexOf(".")).equals("ogg")
 
+  println("ffmpeg binary chosen: " + ffmpegBinary )
+  println("music home directory: " + oggMusic)
+
   val cmd = """ ffmpeg -ab 128 -i %s %s """.trim
   val musicFolder = new File(oggMusic)
   val desktop = new File(System.getProperty("user.home"), "Desktop")
@@ -102,11 +102,13 @@ object Main extends App {
   val stagingMp3 = new File(staging, "tmp.mp3")
 
   walkDirectories(musicFolder, dir => {
+    println("walking directory "+ dir.getAbsolutePath)
     val mirrorDir = new File(mirror, dir.getAbsolutePath.substring(musicFolder.getAbsolutePath.length()))
     assert(mirrorDir.exists() || mirrorDir.mkdirs(), "the directory " + mirrorDir.getAbsolutePath + " doesn't exist and couldn't be created")
     dir.listFiles.filter(f => f.isFile && isOgg(f.getName)).foreach(ogg => {
       val transcodedMp3File = new File(mirrorDir, fileBaseName(ogg) + ".mp3")
-      if (null == transcodedMp3File) {
+      if ( !transcodedMp3File.exists()) {
+        println("transcoding "  + ogg.getAbsolutePath)
         assert(!stagingOgg.exists() || stagingOgg.delete())
         assert(!stagingMp3.exists() || stagingMp3.delete())
         copy(ogg, stagingOgg)

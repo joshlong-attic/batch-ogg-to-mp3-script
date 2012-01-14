@@ -1,3 +1,5 @@
-export MUSIC_HOME="/home/jlong/Desktop/mp3s"
-export FFMPEG_CMD="/usr/local/bin/ffmpeg"
+#mvn -f ../../../pom.xml clean  install
+export MUSIC_HOME="/home/jlong/Music"
+export FFMPEG_CMD="/usr/bin/ffmpeg"
+#cd ../../../target
 java -jar oggtomp3.jar
